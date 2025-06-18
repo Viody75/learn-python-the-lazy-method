@@ -1,0 +1,74 @@
+# control_flow.py
+
+"""
+Python Control Flow
+
+Key Points:
+- Uses indentation instead of curly braces.
+- if-elif-else is straightforward.
+- for-loops iterate over items, not index by default.
+- match-case introduced in Python 3.10 (like switch-case).
+"""
+
+# === if-elif-else ===
+x = 15
+
+if x < 10:
+    print("Less than 10")
+elif x == 10:
+    print("Equal to 10")
+else:
+    print("Greater than 10")
+
+# === for loop (iterates over iterable objects) ===
+fruits = ["apple", "banana", "cherry"]
+
+for fruit in fruits:
+    print(fruit)
+
+# With index
+for idx, fruit in enumerate(fruits):
+    print(f"{idx}: {fruit}")
+
+# === while loop ===
+count = 3
+while count > 0:
+    print(f"Countdown: {count}")
+    count -= 1
+
+# === break / continue / pass ===
+for n in range(5):
+    if n == 2:
+        continue  # skip 2
+    if n == 4:
+        break     # stop at 4
+    print(n)
+
+# === pass (do nothing placeholder) ===
+for i in range(3):
+    pass  # TODO: add logic later
+
+# === for-else ===
+# else runs if loop completes without break
+for i in range(3):
+    print(i)
+else:
+    print("Loop finished cleanly")
+
+# === match-case (like switch-case, Python 3.10+) ===
+status_code = 404
+
+match status_code:
+    case 200:
+        print("OK")
+    case 404:
+        print("Not Found")
+    case 500:
+        print("Server Error")
+    case _:
+        print("Unknown status")
+
+# === Ternary Expression ===
+is_logged_in = True
+msg = "Welcome" if is_logged_in else "Please log in"
+print(msg)
