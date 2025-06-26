@@ -20,7 +20,7 @@ def convert_data(data: list):
         # tahun, month, day = el['tanggal'].split('-')
         ditemukan = False
         for in_el in riwayat:
-            if in_el['tanggal'] in el['tanggal']:
+            if in_el['tanggal'] == el['tanggal']:
                 total_now = int(in_el['total_nominal']) + int(el['nominal'])
                 in_el['total_nominal'] = total_now
                 ditemukan = True

@@ -37,7 +37,7 @@ unique_nums = set(nums)
 print(unique_nums)
 
 # === TUPLE ===
-# Ordered, immutable
+# Ordered (has index), immutable
 
 t = (10, 20, 30)
 print(t[0])
