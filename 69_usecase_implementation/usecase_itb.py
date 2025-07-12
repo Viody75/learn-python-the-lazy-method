@@ -13,8 +13,7 @@ def calculate():
     new_data = []
 
     for el in range(a, b):
-        y = el % x
-        if y == 0:
+        if el % 2 != 0 and el % x == 0:
             new_data.append(el)
 
     print(new_data[:1])
