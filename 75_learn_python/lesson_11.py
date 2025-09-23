@@ -23,7 +23,7 @@ def hanoi(n, source, target, auxiliary):
     hanoi(n-1, auxiliary, target, source)
 
 # Testing untuk 3 cakram
-hanoi(3, "A", "C", "B")
+hanoi(10, "A", "C", "B")
 
 print("\n=== Tower of Hanoi (Iterative) ===")
 
