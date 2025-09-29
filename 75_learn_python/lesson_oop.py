@@ -10,3 +10,7 @@ someVal = 0
 def incByVal(initVal: int, val: int):
     initVal += val  # hanya mengubah copy lokal
     print(f"[incByVal] inside function: {initVal}") 
+
+def decByVal(initVal: int, val: int):
+    initVal -= val  # hanya mengubah copy lokal
+    print(f"[decByVal] inside function: {initVal}")
