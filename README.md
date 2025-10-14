@@ -1,10 +1,10 @@
-# Learn Python for the Experienced: The Laziest Method 💤🐍
+# Learn Python 🐍: The Laziest Method 💤
 
-A minimalist, example-driven Python learning project for experienced lazy developers.
+A minimalist, example-driven Python learning project for lazy developers.
 
 ## Why
 
-- We know how to code, We just need to learn Python's flavor.
+- We know how to code (maybe...), We just need to learn Python's flavor.
 - We don't want long theory, We want working code and quick explanations.
 
 ## Requirements
