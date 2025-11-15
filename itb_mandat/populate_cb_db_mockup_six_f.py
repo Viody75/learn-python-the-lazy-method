@@ -1,0 +1,303 @@
+# === UPDATED COUCHBASE SEEDER SCRIPT ===
+# Sudah termasuk: tambahan deskripsi_mk, kategori, jadwal.tanggal, dosen_wali_nama
+
+import datetime
+import random
+import bcrypt
+import json
+from faker import Faker
+
+# ----------------------------------------------------------------------
+# ⚙️ PENGATURAN
+# ----------------------------------------------------------------------
+CB_BUCKET = "akademik"
+OUTPUT_FILE = "couchbase_seed.txt"
+
+fake = Faker('id_ID')
+
+# --- Helper untuk Hashing Password ---
+def hash_password(password):
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
+
+# --- Setup Collections ---
+def setup_collections(file_handle, bucket_name):
+    file_handle.write(f"\n/* --- 1. MEMBUAT SCOPES & COLLECTIONS --- */\n\n")
+
+    scopes_collections = {
+        "mahasiswa": ["profile", "krs", "keuangan"],
+        "dosen": ["profile"],
+        "akademik": ["fakultas", "program_studi", "kurikulum", "mata_kuliah", "kelas"],
+        "shared_resources": ["ruangan", "semester"],
+        "utility": ["log_aktivitas"]
+    }
+
+    for scope_name in scopes_collections.keys():
+        file_handle.write(f'CREATE SCOPE `{bucket_name}`.`{scope_name}` IF NOT EXISTS;\n')
+
+    for scope_name, collections in scopes_collections.items():
+        for collection_name in collections:
+            file_handle.write(f'CREATE COLLECTION `{bucket_name}`.`{scope_name}`.`{collection_name}` IF NOT EXISTS;\n')
+
+# --- Helper INSERT ---
+def write_insert_query(file_handle, bucket, scope, collection, doc_id, doc_body):
+    json_value = json.dumps(doc_body, ensure_ascii=False)
+    query = f'INSERT INTO `{bucket}`.`{scope}`.`{collection}` (KEY, VALUE) VALUES ("{doc_id}", {json_value});'
+    file_handle.write(query + "\n")
+
+# --- Seeder Master ---
+def seed_shared_resources(file_handle, bucket_name):
+    file_handle.write(f"\n/* --- 2. SEEDING DATA MASTER --- */\n\n")
+
+    data_store = {"fakultas": [], "prodi": [], "kurikulum": [], "matkul": [], "ruangan": [], "semester": []}
+
+    # Fakultas
+    fakultas_list = [
+        {"nama": "Fakultas Teknik", "singkatan": "FT"},
+        {"nama": "Fakultas Ekonomi dan Bisnis", "singkatan": "FEB"},
+        {"nama": "Fakultas Ilmu Komputer", "singkatan": "FIK"},
+    ]
+    for f in fakultas_list:
+        doc_id = f"fakultas::{f['singkatan'].lower()}"
+        write_insert_query(file_handle, bucket_name, "akademik", "fakultas", doc_id, f)
+        data_store["fakultas"].append(f['nama'])
+
+    # Program Studi
+    prodi_list = [
+        {"nama": "Teknik Informatika", "jenjang": "S1", "fakultas_nama": "Fakultas Ilmu Komputer"},
+        {"nama": "Sistem Informasi", "jenjang": "S1", "fakultas_nama": "Fakultas Ilmu Komputer"},
+        {"nama": "Manajemen", "jenjang": "S1", "fakultas_nama": "Fakultas Ekonomi dan Bisnis"},
+        {"nama": "Teknik Sipil", "jenjang": "S1", "fakultas_nama": "Fakultas Teknik"},
+    ]
+    for p in prodi_list:
+        doc_id = f"prodi::{p['nama'].lower().replace(' ', '_')}"
+        write_insert_query(file_handle, bucket_name, "akademik", "program_studi", doc_id, p)
+        data_store["prodi"].append(p['nama'])
+
+    # Kurikulum
+    kurikulum_tahun = 2020
+    kurikulum_doc = {
+        "tahun": kurikulum_tahun,
+        "bahan_kajian": "...",
+        "capaian": "...",
+        "metode_pembelajaran": "...",
+        "modalitas": "...",
+        "jenis_nilai": "...",
+        "metode_penilaian": "...",
+        "catatan": "Kurikulum 2020"
+    }
+    write_insert_query(file_handle, bucket_name, "akademik", "kurikulum", f"kurikulum::{kurikulum_tahun}", kurikulum_doc)
+    data_store["kurikulum"].append(kurikulum_tahun)
+
+    # Mata Kuliah (updated)
+    matkul_list = [
+        {"kode_mk": "IF101", "nama_mk": "Dasar Pemrograman", "sks": 4, "tahun_kurikulum": 2020,
+         "deskripsi_mk": "Pengenalan dasar logika pemrograman dan algoritma.", "kategori": "Wajib"},
+        {"kode_mk": "IF102", "nama_mk": "Struktur Data", "sks": 3, "tahun_kurikulum": 2020,
+         "deskripsi_mk": "Pengenalan struktur data dan penggunaannya.", "kategori": "Wajib"},
+        {"kode_mk": "SI101", "nama_mk": "Analisis Proses Bisnis", "sks": 3, "tahun_kurikulum": 2020,
+         "deskripsi_mk": "Dasar analisis proses bisnis organisasi.", "kategori": "Wajib"},
+        {"kode_mk": "MN101", "nama_mk": "Pengantar Manajemen", "sks": 3, "tahun_kurikulum": 2020,
+         "deskripsi_mk": "Dasar-dasar ilmu manajemen.", "kategori": "Umum"},
+        {"kode_mk": "TS101", "nama_mk": "Mekanika Tanah", "sks": 4, "tahun_kurikulum": 2020,
+         "deskripsi_mk": "Dasar sifat fisik dan mekanik tanah.", "kategori": "Wajib"},
+        {"kode_mk": "UM101", "nama_mk": "Pendidikan Pancasila", "sks": 2, "tahun_kurikulum": 2020,
+         "deskripsi_mk": "Pemahaman nilai Pancasila.", "kategori": "Umum"},
+    ]
+    for mk in matkul_list:
+        write_insert_query(file_handle, bucket_name, "akademik", "mata_kuliah", f"matkul::{mk['kode_mk']}", mk)
+        data_store["matkul"].append(mk)
+
+    # Ruangan
+    for i in range(1, 6):
+        ruangan = {
+            "kode_ruangan": 100 + i,
+            "nama_ruangan": f"Ruang R.{100+i}",
+            "kapasitas": random.choice([30, 50, 100]),
+            "lokasi": "Gedung A",
+            "daerah": "Kampus Pusat",
+            "gedung": "Gedung A",
+            "lantai": i,
+            "status": "Aktif"
+        }
+        write_insert_query(file_handle, bucket_name, "shared_resources", "ruangan", f"ruangan::{100+i}", ruangan)
+        data_store["ruangan"].append(ruangan)
+
+    # Semester aktif
+    semester_aktif = {"tahun": 2024, "semester": "ganjil"}
+    semester_doc = {
+        **semester_aktif,
+        "waktu_mulai_pengisian_nilai": "2024-12-01",
+        "waktu_selesai_pengisian_nilai": "2024-12-15"
+    }
+    write_insert_query(file_handle, bucket_name, "shared_resources", "semester",
+                       f"semester::{semester_aktif['tahun']}_{semester_aktif['semester']}", semester_doc)
+    data_store["semester"].append(semester_aktif)
+
+    return data_store
+
+# --- Seeder Dosen ---
+def seed_dosen(file_handle, bucket_name, list_fakultas, total=10):
+    file_handle.write(f"\n/* --- 3. SEEDING DATA DOSEN --- */\n\n")
+
+    dosen_list = []
+    for i in range(total):
+        nidn = int(f"11{i:06d}")
+        nama = fake.name()
+        email = f"dosen.{nidn}@kampus.ac.id"
+
+        dosen_doc = {
+            "_type": "dosen",
+            "nidn": nidn,
+            "email": email,
+            "nip": fake.numerify(text="##################"),
+            "nama_lengkap": nama,
+            "golongan": random.choice(["III/c", "III/d", "IV/a"]),
+            "pangkat": "Lektor",
+            "jabatan": "Dosen",
+            "akademik": "S2",
+            "fakultas_nama": random.choice(list_fakultas),
+            "auth": {"peran": "dosen", "hash_password": hash_password("dosen123")},
+            "telepon": [fake.phone_number()]
+        }
+
+        write_insert_query(file_handle, bucket_name, "dosen", "profile", f"dosen::{nidn}", dosen_doc)
+        dosen_list.append(dosen_doc)
+
+    return dosen_list
+
+# --- Seeder Mahasiswa (updated dosen_wali_nama) ---
+def seed_mahasiswa(file_handle, bucket_name, list_prodi, list_dosen, total=50):
+    file_handle.write(f"\n/* --- 4. SEEDING DATA MAHASISWA --- */\n\n")
+
+    mahasiswa_list = []
+    for i in range(total):
+        nim = int(f"13521{i:03d}")
+        nama = fake.name()
+        email = f"mhs.{nim}@kampus.ac.id"
+
+        dosen_wali = random.choice(list_dosen)
+
+        mahasiswa_doc = {
+            "_type": "mahasiswa",
+            "nim": nim,
+            "email": email,
+            "nama_lengkap": nama,
+            "dokumen_transkrip": "Belum ada",
+            "prodi_nama": random.choice(list_prodi),
+            "dosen_wali_nidn": dosen_wali['nidn'],
+            "dosen_wali_nama": dosen_wali['nama_lengkap'],
+            "auth": {"peran": "mahasiswa", "hash_password": hash_password("mahasiswa123")},
+            "telepon": [fake.phone_number()],
+            "yudisium": None
+        }
+
+        if i < total * 0.1:
+            mahasiswa_doc["yudisium"] = {"tahun": 2024, "bulan": "Maret"}
+
+        write_insert_query(file_handle, bucket_name, "mahasiswa", "profile", f"mhs::{nim}", mahasiswa_doc)
+        mahasiswa_list.append(mahasiswa_doc)
+
+    return mahasiswa_list
+
+# --- Seeder Kelas & Jadwal (updated with tanggal) ---
+def seed_akademik_data(file_handle, bucket_name, list_matkul, list_ruangan, list_semester):
+    file_handle.write(f"\n/* --- 5. SEEDING DATA KELAS & JADWAL --- */\n\n")
+
+    semester_aktif = list_semester[0]
+    kelas_list = []
+
+    for mk in list_matkul:
+        for kelas_nama in ["A", "B"]:
+            ruangan = random.choice(list_ruangan)
+            hari = random.choice(["Senin", "Selasa", "Rabu", "Kamis", "Jumat"])
+            jam_mulai = random.choice(["08:00", "10:00", "13:00"])
+
+            kelas_doc = {
+                "nomor_kelas": kelas_nama,
+                "kode_mk": mk['kode_mk'],
+                "tahun": semester_aktif['tahun'],
+                "semester": semester_aktif['semester'],
+                "kapasitas": ruangan['kapasitas'],
+                "jadwal": [
+                    {
+                        "jenis_kegiatan": "Kuliah",
+                        "hari": hari,
+                        "tanggal": fake.date_between(start_date="-30d", end_date="+30d").isoformat(),
+                        "jam_mulai": jam_mulai,
+                        "jam_selesai": f"{int(jam_mulai[:2]) + 2}:00",
+                        "kode_ruangan": ruangan['kode_ruangan']
+                    }
+                ]
+            }
+
+            doc_id = f"kelas::{mk['kode_mk']}::{kelas_nama}::{semester_aktif['tahun']}::{semester_aktif['semester']}"
+            write_insert_query(file_handle, bucket_name, "akademik", "kelas", doc_id, kelas_doc)
+            kelas_list.append(kelas_doc)
+
+    return kelas_list
+
+# --- Seeder KRS & Keuangan ---
+def seed_mahasiswa_data(file_handle, bucket_name, list_mahasiswa, list_kelas):
+    file_handle.write(f"\n/* --- 6. SEEDING DATA KRS & KEUANGAN --- */\n\n")
+
+    semester_aktif = list_kelas[0]
+    tahun = semester_aktif['tahun']
+    semester = semester_aktif['semester']
+
+    for mhs in list_mahasiswa:
+        nim = mhs['nim']
+
+        jumlah_mk = random.randint(4, 6)
+        kelas_diambil = random.sample(list_kelas, jumlah_mk)
+
+        krs_doc = {
+            "nim": nim,
+            "tahun": tahun,
+            "semester": semester,
+            "tanggal_waktu_pengisian": fake.iso8601(),
+            "mata_kuliah": [
+                {
+                    "kode_mk": k['kode_mk'],
+                    "nomor_kelas": k['nomor_kelas'],
+                    "indeks_nilai": random.choice(["A", "B", "C", "D", "E", None])
+                }
+                for k in kelas_diambil
+            ]
+        }
+
+        write_insert_query(file_handle, bucket_name, "mahasiswa", "krs", f"krs::{nim}::{tahun}::{semester}", krs_doc)
+
+        tagihan = 5000000
+        status_bayar = random.choice([True, False])
+
+        keuangan_doc = {
+            "nim": nim,
+            "tahun": tahun,
+            "semester": semester,
+            "tagihan": str(tagihan),
+            "pembayaran": str(tagihan) if status_bayar else "0",
+            "tanggal_batas_pembayaran": f"{tahun}-08-15"
+        }
+
+        write_insert_query(file_handle, bucket_name, "mahasiswa", "keuangan", f"keuangan::{nim}::{tahun}::{semester}", keuangan_doc)
+
+# --- MAIN EXECUTION ---
+def main():
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        f.write(f"-- Skrip Seeding N1QL untuk Bucket: {CB_BUCKET}\n")
+        f.write(f"-- Dibuat pada: {datetime.datetime.now().isoformat()}\n")
+        f.write("-- Jalankan kueri ini di Couchbase Query Editor.\n")
+
+        setup_collections(f, CB_BUCKET)
+        shared = seed_shared_resources(f, CB_BUCKET)
+        dosen = seed_dosen(f, CB_BUCKET, shared['fakultas'], total=15)
+        mahasiswa = seed_mahasiswa(f, CB_BUCKET, shared['prodi'], dosen, total=100)
+        kelas = seed_akademik_data(f, CB_BUCKET, shared['matkul'], shared['ruangan'], shared['semester'])
+        seed_mahasiswa_data(f, CB_BUCKET, mahasiswa, kelas)
+
+        print(f"Selesai membuat file: {OUTPUT_FILE}")
+
+if __name__ == "__main__":
+    main()
