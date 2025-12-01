@@ -1,0 +1,3 @@
+{"user_001": {"name": "Viody", "email": "viody@example.com", "role": "admin"}}
+{"user_002": {"name": "Andi", "email": "andi@example.com", "role": "user"}}
+{"user_003": {"name": "Budi", "email": "budi@example.com", "role": "editor"}}
