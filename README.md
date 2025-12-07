@@ -11,3 +11,4 @@ A minimalist, example-driven Python learning project for lazy developers.
 
 - Python 3+
 - Just run the `.py` files
+- Need more adjustments
